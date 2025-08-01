@@ -1,22 +1,22 @@
-# 🚗 Ride Booking API
+# Ride Booking API
 
 A secure and scalable **RESTful API** built using **Node.js**, **Express.js**, **TypeScript**, and **MongoDB**. This backend system powers a complete **Ride Booking platform** supporting riders, drivers, and admins through role-based access, robust ride lifecycle management, and driver onboarding workflows.
 
 ---
 
-## 📌 Features
+## Features
 
-- ✅ JWT-based authentication for all users  
-- 🧍 Riders: Request/cancel rides, view ride history  
-- 🚖 Drivers: Apply, accept/reject rides, track earnings  
-- 🛡️ Admins: Manage users & drivers, view all ride data  
-- ⏱️ Timestamps: Automatically track ride progress  
-- 🔐 Secure routes with role-based authorization (Admin | Driver | Rider)  
-- 💡 Clean error handling and modular code architecture  
+- JWT-based authentication for all users  
+- Riders: Request/cancel rides, view ride history  
+- Drivers: Apply, accept/reject rides, track earnings  
+- Admins: Manage users & drivers, view all ride data  
+-  Timestamps: Automatically track ride progress  
+- Secure routes with role-based authorization (Admin | Driver | Rider)  
+- Clean error handling and modular code architecture  
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Category      | Tech                                     |
 |---------------|------------------------------------------|
@@ -29,20 +29,20 @@ A secure and scalable **RESTful API** built using **Node.js**, **Express.js**, *
 
 ---
 
-## ⚙️ Getting Started
+##  Getting Started
 
-### 1️⃣ Clone the Repository
+### 1️ Clone the Repository
 
 ```bash
 git clone https://github.com/mostaryjahan/Ride-booking-system-backend.git
 cd Ride-booking-system-backend
 ```
-2️⃣ Install Dependencies
+### 2️ Install Dependencies
 ```
 npm install
 ```
 
-3️⃣ Create .env File
+### 3 Create .env File
 ```
 PORT=5000
 DB_URL=mongodb://localhost:27017/rideBooking
@@ -58,14 +58,14 @@ ADMIN_EMAIL=your_admin_email
 ADMIN_PASSWORD=your_admin_password
 
 ```
-4️⃣ Run the Server
+### 4️ Run the Server
 ```
 npm run dev
 ```
 
 ## API Endpoints Overview
 
-### 🔐 Auth
+###  Auth
 
 | Method | Endpoint              | Description                     |
 |--------|-----------------------|---------------------------------|
@@ -75,7 +75,7 @@ npm run dev
 
 ---
 
-### 👤 User
+###  User
 
 | Method | Endpoint       | Description                            |
 |--------|----------------|----------------------------------------|
@@ -84,7 +84,7 @@ npm run dev
 
 ---
 
-### 🛡️ Admin
+###  Admin
 
 | Method | Endpoint                         | Description                    |
 |--------|----------------------------------|--------------------------------|
@@ -99,7 +99,7 @@ npm run dev
 
 ---
 
-### 👷 Driver
+###  Driver
 
 | Method | Endpoint                          | Description                                        |
 |--------|-----------------------------------|----------------------------------------------------|
@@ -112,7 +112,7 @@ npm run dev
 
 ---
 
-### 🛺 Ride
+###  Ride
 
 | Method | Endpoint             | Description                  |
 |--------|----------------------|------------------------------|
@@ -122,7 +122,7 @@ npm run dev
 | GET    | `/rides/:id`         | (Rider) View single ride history |
 
 
-📁 Folder Structure
+ Folder Structure
 ```
 src/
 ├── app/
@@ -141,7 +141,7 @@ src/
 ```
 
 
-🌐 Live Link : 
+ Live Link : 
 
 
 
