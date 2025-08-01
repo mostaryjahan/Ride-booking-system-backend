@@ -1,50 +1,18 @@
 import { Router } from "express";
-import { DriverController } from "./driver.controller";
-
-import { Role } from "../user/user.interface";
 import { checkAuth } from "../../middlewares/checkAuth";
-import { validateRequest } from "../../middlewares/validaterequest";
-import z from "zod";
-
+import { Role } from "../user/user.interface";
+import { DriverController } from "./driver.controller";
+import { createDriverZodSchema } from "./driver.validation";
+import { validateRequest } from "../../middlewares/validateRequest";
 
 
 const router = Router();
 
-router.patch(
-  "/:id/availability",
-  validateRequest,
-  checkAuth(Role.DRIVER, Role.ADMIN),
-  DriverController.updateAvailability
-);
-
-
-router.get(
-  "/:id/profile",
-  validateRequest,
-  checkAuth(Role.DRIVER, Role.ADMIN),
-  DriverController.getDriverProfile
-);
-
-
-router.get(
-  "/:id/rides",
-  validateRequest,
-  checkAuth(Role.DRIVER, Role.ADMIN),
-  DriverController.getRideHistory
-);
-
-router.patch(
-  "/:id/rides/status",
-  validateRequest,
-  checkAuth(Role.DRIVER, Role.ADMIN),
-  DriverController.updateRideStatus
-);
-
-router.patch(
-  "/block/:id",
-  checkAuth(Role.ADMIN),
-  validateRequest(z.object({ isBlock: z.enum(['BLOCK', 'UNBLOCK']) })),
-  DriverController.blockDriverController
-);
+router.post("/apply-driver", checkAuth(Role.RIDER), DriverController.applyToBeDriver, validateRequest(createDriverZodSchema));
+router.get("/rides-available", checkAuth(Role.DRIVER), DriverController.getAvailableRides);
+router.patch("/rides/:id/accept", checkAuth(Role.DRIVER), DriverController.acceptRide);
+router.patch("/rides/:id/reject", checkAuth(Role.DRIVER), DriverController.rejectRide);
+router.patch("/rides/:id/status", checkAuth(Role.DRIVER), DriverController.updateRideStatus);
+router.get("/earning-history", checkAuth(Role.DRIVER), DriverController.getRideHistory);
 
 export const DriverRoutes = router;

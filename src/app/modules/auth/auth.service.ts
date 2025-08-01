@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { JwtPayload } from "jsonwebtoken";
 import { IUser } from "../user/user.interface";
 import { User } from "../user/user.model";

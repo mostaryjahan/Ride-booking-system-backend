@@ -1,21 +1,21 @@
 import { Router } from "express";
-import { approveDriverZodSchema, createUserZodSchema, updateUserZodSchema } from "./user.validation";
+import { createUserZodSchema, updateUserZodSchema } from "./user.validation";
 
 import { UserControllers } from "./user.controller";
-import { validateRequest } from "../../middlewares/validaterequest";
+import { validateRequest } from "../../middlewares/validateRequest";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "./user.interface";
-import z from "zod";
+
 
 const router = Router();
 
 router.post("/register", validateRequest(createUserZodSchema), UserControllers.createUser);
 
-router.get(
-  "/",
-  checkAuth(Role.ADMIN),
-  UserControllers.getAllUser
-);
+// router.get(
+//   "/",
+//   checkAuth(Role.ADMIN),
+//   UserControllers.getAllUser
+// );
 
 
 router.patch('/:id', validateRequest(updateUserZodSchema), checkAuth(Role.ADMIN), UserControllers.updateUser);
@@ -25,6 +25,6 @@ router.patch('/:id', validateRequest(updateUserZodSchema), checkAuth(Role.ADMIN)
 
 
 
-router.patch('/approve/:id', validateRequest(approveDriverZodSchema), checkAuth(Role.ADMIN), UserControllers.approveDriver);
+// router.patch('/approve/:id', validateRequest(approveDriverZodSchema), checkAuth(Role.ADMIN), UserControllers.approveDriver);
 
 export const UserRoutes = router;

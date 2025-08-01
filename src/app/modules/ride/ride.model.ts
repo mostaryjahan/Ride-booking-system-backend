@@ -1,38 +1,58 @@
 import { Schema, model, Types } from 'mongoose';
-import { IRide } from './ride.interface';
+import { IRide, RideStatus } from './ride.interface';
 
-
-const rideSchema = new Schema<IRide>({
-  riderId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
-  driverId: { type: Types.ObjectId, ref: 'User' },
-  pickupLocation: {
-    address: { type: String, required: true },
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
+const rideSchema = new Schema(
+  {
+    rider: {
+      type: Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    driver: {
+      type: Types.ObjectId,
+      ref: 'User',
+      default: null, // driver will be assigned after accepting
+    },
+    pickupLocation: {
+      address: { type: String, required: true },
+      coordinates: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+      },
+    },
+    destinationLocation: {
+      address: { type: String, required: true },
+      coordinates: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+      },
+    },
+    status: {
+      type: String,
+      enum: Object.values(RideStatus),
+      default: RideStatus.REQUESTED,
+    },
+    fare: {
+      type: Number,
+      required: true,
+    },
+    timestamps: {
+      requestedAt: { type: Date, default: Date.now },
+      acceptedAt: { type: Date },
+      pickedUpAt: { type: Date },
+      inTransitAt: { type: Date },
+      completedAt: { type: Date },
+      cancelledAt: { type: Date },
+    },
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
   },
-  dropOffLocation: {
-    address: { type: String, required: true },
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
-  },
-  fare: { type: Number, required: true },
-  status: {
-    type: String,
-    enum: ['requested', 'accepted', 'rejected', 'picked_up', 'in_transit', 'completed', 'canceled'],
-    default: 'requested',
-  },
-  requestedAt: { type: Date, default: Date.now },
-  acceptedAt: { type: Date },
-  completedAt: { type: Date },
-});
-
-// Middleware to set timestamps on status changes
-rideSchema.pre('save', function (next) {
-  if (this.isModified('status')) {
-    if (this.status === 'accepted') this.acceptedAt = new Date();
-    if (this.status === 'completed') this.completedAt = new Date();
+  {
+    timestamps: true,
+    versionKey: false
   }
-  next();
-});
+);
 
 export const Ride = model<IRide>('Ride', rideSchema);

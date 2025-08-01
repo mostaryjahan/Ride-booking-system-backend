@@ -1,102 +1,114 @@
-import { Ride } from './ride.model';
-import { IRide, RideStatus } from '../../interfaces/ride.interface';
-import { User } from '../user/user.model';
-import { AppError } from '../../utils/error';
-import { Role } from '../user/user.interface';
+import { IRide, RideStatus } from "./ride.interface";
+import { Ride } from "./ride.model";
+import AppError from "../../errorHelpers/AppError";
+import httpStatus from "http-status-codes";
+import { isValidObjectId } from "mongoose";
 
+const createRide = async (riderId: string, payload: Partial<IRide>) => {
+  if (!riderId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized access");
+  }
 
-// Valid status transitions
-const statusTransitions: Record<RideStatus, RideStatus[]> = {
-  requested: ['accepted', 'rejected', 'canceled'],
-  accepted: ['picked_up', 'canceled'],
-  picked_up: ['in_transit'],
-  in_transit: ['completed'],
-  completed: [],
-  canceled: [],
-  rejected: [],
-};
-
-export const createRide = async (payload: Partial<IRide>, riderId: string) => {
-  const rider = await User.findById(riderId);
-  if (!rider || rider.isBlock === 'BLOCK') throw new AppError('Invalid or blocked rider', 403);
-
-  // Check for active rides
-  const activeRide = await Ride.findOne({
-    riderId,
-    status: { $in: ['requested', 'accepted', 'picked_up', 'in_transit'] },
+  const existingRide = await Ride.findOne({
+    rider: riderId,
+    status: {
+      $in: [
+        RideStatus.REQUESTED,
+        RideStatus.ACCEPTED,
+        RideStatus.PICKED_UP,
+        RideStatus.IN_TRANSIT,
+      ],
+    },
   });
-  if (activeRide) throw new AppError('Rider has an active ride', 400);
 
-  const ride = await Ride.create({ ...payload, riderId });
-  await User.findByIdAndUpdate(riderId, { $push: { rides: ride._id } });
+  if (existingRide) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "You already have an active ride in progress"
+    );
+  }
+
+  const ride = await Ride.create({
+    rider: riderId,
+    pickupLocation: payload.pickupLocation,
+    destinationLocation: payload.destinationLocation,
+    status: RideStatus.REQUESTED,
+    fare: payload.fare,
+    isPaid: false,
+    timestamps: {
+      requestedAt: new Date(),
+    },
+  });
+
   return ride;
 };
 
-export const cancelRide = async (rideId: string, riderId: string) => {
+const cancelRide = async (rideId: string, riderId: string) => {
+  if (!isValidObjectId(rideId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid ride ID");
+  }
+
   const ride = await Ride.findById(rideId);
-  if (!ride) throw new AppError('Ride not found', 404);
-  if (ride.riderId.toString() !== riderId) throw new AppError('Unauthorized', 403);
-  if (!statusTransitions[ride.status].includes('canceled')) {
-    throw new AppError('Ride cannot be canceled at this stage', 400);
+
+  if (!ride) {
+    throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
   }
 
-  ride.status = 'canceled';
+  if (ride.rider.toString() !== riderId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to cancel this ride"
+    );
+  }
+
+  if (
+    ride.status !== RideStatus.REQUESTED &&
+    ride.status !== RideStatus.ACCEPTED
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot cancel a ride at '${ride.status}' stage`
+    );
+  }
+
+  ride.status = RideStatus.CANCELLED;
+  ride.timestamps.cancelledAt = new Date();
+
   await ride.save();
+
   return ride;
 };
 
-export const updateRideStatus = async (rideId: string, driverId: string, status: RideStatus) => {
+const getMyRides = async (riderId: string) => {
+  const rides = await Ride.find({ rider: riderId }).sort({ createdAt: -1 });
+
+  return rides;
+};
+
+const getSingleRide = async (rideId: string, riderId: string) => {
+  if (!isValidObjectId(rideId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid ride ID");
+  }
+
   const ride = await Ride.findById(rideId);
-  if (!ride) throw new AppError('Ride not found', 404);
 
-  const driver = await User.findById(driverId);
-  if (!driver || driver.role !== Role.DRIVER || driver.isBlock === 'BLOCK') {
-    throw new AppError('Invalid or blocked driver', 403);
-  }
-  if (!(driver as any).isApproved) throw new AppError('Driver not approved', 403);
-  if (!(driver as any).isOnline) throw new AppError('Driver is offline', 403);
-
-  if (!statusTransitions[ride.status].includes(status)) {
-    throw new AppError(`Cannot transition from ${ride.status} to ${status}`, 400);
+  if (!ride) {
+    throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
   }
 
-  if (status === 'accepted') {
-    if (ride.driverId) throw new AppError('Ride already assigned', 400);
-    ride.driverId = driverId;
-  } else if (ride.driverId?.toString() !== driverId) {
-    throw new AppError('Unauthorized', 403);
+  if (ride.rider.toString() !== riderId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to view this ride"
+    );
   }
 
-  ride.status = status;
-  if (status === 'completed') ride.fare = ride.fare || 50; // Simplified fare
-  await ride.save();
   return ride;
-};
-
-export const getMyRides = async (userId: string) => {
-  return await Ride.find({
-    $or: [{ riderId: userId }, { driverId: userId }],
-  }).populate('riderId driverId');
-};
-
-export const getAllRides = async () => {
-  return await Ride.find().populate('riderId driverId');
-};
-
-export const getDriverEarnings = async (driverId: string) => {
-  const driver = await User.findById(driverId);
-  if (!driver || driver.role !== Role.DRIVER) throw new AppError('Invalid driver', 403);
-
-  const rides = await Ride.find({ driverId, status: 'completed' });
-  const totalEarnings = rides.reduce((sum, ride) => sum + ride.fare, 0);
-  return { rides, totalEarnings };
 };
 
 export const RideService = {
   createRide,
   cancelRide,
-  updateRideStatus,
   getMyRides,
-  getAllRides,
-  getDriverEarnings,
+  getSingleRide,
 };

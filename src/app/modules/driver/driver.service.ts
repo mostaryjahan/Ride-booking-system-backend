@@ -1,91 +1,196 @@
-import { User } from "../user/user.model"; // User মডেল
-import { IDriver, Role } from "../user/user.interface";
+import { Driver } from "./driver.model";
+import { IDriver, IsApprove, IsAvailable } from "./driver.interface";
 import AppError from "../../errorHelpers/AppError";
 import httpStatus from "http-status-codes";
-import { JwtPayload } from "jsonwebtoken";
 import { Ride } from "../ride/ride.model";
-import { IRide } from "../ride/ride.interface";
+import { RideStatus } from "../ride/ride.interface";
 
-interface IUpdateAvailability {
-  isOnline: boolean;
-}
+const applyToBeDriver = async (userId: string, payload: Partial<IDriver>) => {
+  const isAlreadyDriver = await Driver.findOne({ user: userId });
 
-
-
-const setAvailability = async (
-  driverId: string,
-  payload: IUpdateAvailability,
-  decodedToken: JwtPayload
-) => {
-  if (decodedToken._id !== driverId && decodedToken.role !== Role.ADMIN) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to update availability");
+  if (isAlreadyDriver) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "You have already applied or are already a driver."
+    );
   }
 
+  const newDriver = await Driver.create({
+    user: userId,
+    vehicleType: payload.vehicleType,
+    vehicleNumber: payload.vehicleNumber,
+    approvalStatus: IsApprove.PENDING,
+    availabilityStatus: IsAvailable.ONLINE,
+  });
 
-  const driver = await User.findOne({ _id: driverId, role: Role.DRIVER });
-
-  if (!driver) {
-    throw new AppError(httpStatus.NOT_FOUND, "Driver not found");
-  }
-
-  driver.isOnline = payload.isOnline;
-  await driver.save();
-
-  return driver;
+  return newDriver;
 };
 
-// update status
-const updateRideStatus = async (
-  driverId: string,
-  payload: IRide,
-  decodedToken: JwtPayload
-) => {
-  if (decodedToken._id !== driverId && decodedToken.role !== Role.ADMIN) {
-    throw new AppError(httpStatus.FORBIDDEN, "Not authorized to update ride status");
+const getAvailableRides = async () => {
+  const availableRides = await Ride.find({
+    driver: null,
+    status: RideStatus.REQUESTED,
+  }).sort({ createdAt: -1 });
+
+  return availableRides;
+};
+
+const acceptRide = async (rideId: string, driverUserId: string) => {
+  const driver = await Driver.findOne({ user: driverUserId });
+
+  if (!driver) {
+    throw new AppError(httpStatus.FORBIDDEN, "Driver profile not found");
   }
 
- 
-  const ride = await Ride.findById(payload._id);
+  if(driver.approvalStatus === IsApprove.SUSPENDED) {
+    throw new AppError(httpStatus.BAD_REQUEST, "You are a SUSPENDED Driver. You cann't accept Request");
+  }
+
+  const ride = await Ride.findById(rideId);
 
   if (!ride) {
     throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
   }
 
+  if (ride.status !== RideStatus.REQUESTED) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Ride is not available for acceptance"
+    );
+  }
 
-  ride.status = payload.status;
+  if (ride.driver) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Ride already assigned to a driver"
+    );
+  }
 
+  ride.driver = driver._id;
+  ride.status = RideStatus.ACCEPTED;
+  ride.timestamps.acceptedAt = new Date();
   await ride.save();
+
+  driver.availabilityStatus = IsAvailable.OFFLINE;
+  await driver.save();
+
+  return ride;
+};
+
+const rejectRide = async (rideId: string, driverUserId: string) => {
+  const driver = await Driver.findOne({ user: driverUserId });
+
+  if (!driver) {
+    throw new AppError(httpStatus.FORBIDDEN, "Driver profile not found");
+  }
+
+  const ride = await Ride.findById(rideId);
+
+  if (!ride) {
+    throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+  }
+
+  if (
+    ride.status === RideStatus.REJECTED ||
+    ride.status === RideStatus.COMPLETED
+  ) {
+    throw new AppError(httpStatus.BAD_REQUEST, `Ride cannot be rejected`);
+  }
+
+  if (
+    ride.driver?.toString() !== driver._id.toString() &&
+    ride.driver !== null
+  ) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not assigned to this ride"
+    );
+  }
+
+  ride.status = RideStatus.REJECTED;
+  ride.driver = null;
+  await ride.save();
+
+  driver.availabilityStatus = IsAvailable.ONLINE;
+  await driver.save();
+
+  return ride;
+};
+
+const updateRideStatus = async (rideId: string, driverUserId: string) => {
+  const driver = await Driver.findOne({ user: driverUserId });
+  if (!driver) {
+    throw new AppError(httpStatus.NOT_FOUND, "Driver profile not found");
+  }
+
+  const ride = await Ride.findById(rideId);
+  if (!ride) {
+    throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+  }
+
+  if (!ride.driver || ride.driver.toString() !== driver._id.toString()) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not assigned to this ride"
+    );
+  }
+
+  let newStatus: typeof ride.status;
+
+  if (ride.status === RideStatus.ACCEPTED) {
+    newStatus = RideStatus.PICKED_UP;
+    ride.timestamps.pickedUpAt = new Date();
+  } else if (ride.status === RideStatus.PICKED_UP) {
+    newStatus = RideStatus.IN_TRANSIT;
+    ride.timestamps.inTransitAt = new Date();
+  } else if (ride.status === RideStatus.IN_TRANSIT) {
+    newStatus = RideStatus.COMPLETED;
+    ride.timestamps.completedAt = new Date();
+    driver.earnings += ride.fare;
+    ride.isPaid = true;
+  } else {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Invalid ride status transition from ${ride.status}`
+    );
+  }
+
+  ride.status = newStatus;
+  await ride.save();
+
+  if (newStatus === RideStatus.COMPLETED) {
+    driver.availabilityStatus = IsAvailable.ONLINE;
+    await driver.save();
+  }
 
   return ride;
 };
 
 
-const getDriverById = async (driverId: string) => {
-  const driver = await User.findOne({ _id: driverId, role: Role.DRIVER });
+const getRideHistory = async (userId: string) => {
+  const driver = await Driver.findOne({ user: userId });
 
   if (!driver) {
     throw new AppError(httpStatus.NOT_FOUND, "Driver not found");
   }
 
-  return driver;
+  const rides = await Ride.find({ driver: driver._id }).sort({ createdAt: -1 });
+
+  const totalEarnings = driver.earnings;
+
+  return {
+    totalRides: rides.length,
+    totalEarnings,
+    rides,
+  };
 };
-
-//driver history
-const getDriverRideHistory = async (driverId: string) => {
-  const driver = await User.findOne({ _id: driverId, role: Role.DRIVER }).populate("rides");
-
-  if (!driver) {
-    throw new AppError(httpStatus.NOT_FOUND, "Driver not found");
-  }
-
-  return driver.rides;
-};
-
 
 
 export const DriverService = {
-  setAvailability,
-  getDriverById,
-  getDriverRideHistory,
-  updateRideStatus
+  applyToBeDriver,
+  getAvailableRides,
+  acceptRide,
+  rejectRide,
+  updateRideStatus,
+  getRideHistory,
 };

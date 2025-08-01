@@ -1,25 +1,23 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const createRideZodSchema = z.object({
   pickupLocation: z.object({
-    address: z.string().min(3, 'Pickup address must be at least 3 characters'),
-    lat: z.number().min(-90).max(90, 'Latitude must be between -90 and 90'),
-    lng: z.number().min(-180).max(180, 'Longitude must be between -180 and 180'),
+    address: z.string({ message: "Pickup address is required" }),
+    coordinates: z.object({
+      lat: z.number({ message: "Pickup latitude is required" }),
+      lng: z.number({ message: "Pickup longitude is required" }),
+    }),
   }),
-  dropOffLocation: z.object({
-    address: z.string().min(3, 'Drop-off address must be at least 3 characters'),
-    lat: z.number().min(-90).max(90, 'Latitude must be between -90 and 90'),
-    lng: z.number().min(-180).max(180, 'Longitude must be between -180 and 180'),
+  destinationLocation: z.object({
+    address: z.string({ message: "Destination address is required" }),
+    coordinates: z.object({
+      lat: z.number({ message: "Destination latitude is required" }),
+      lng: z.number({ message: "Destination longitude is required" }),
+    }),
   }),
-  fare: z.number().min(0, 'Fare cannot be negative'),
-});
-
-export const updateRideStatusZodSchema = z.object({
-  status: z.enum(
-    ['accepted', 'rejected', 'picked_up', 'in_transit', 'completed', 'canceled'] as const,
-    {
-      errorMap: () => ({ message: 'Invalid status' }),
-    }
-  ),
-
+  fare: z.number({
+    message: "Fare is Required"
+  })
+  .positive("Fare must be a positive number")
+  .min(10, "Fare must be at least 10 taka")
 });

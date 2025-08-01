@@ -1,102 +1,111 @@
-import { NextFunction, Request, Response } from "express";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import { Request, Response, NextFunction } from "express";
 import { catchAsync } from "../../utils/catchAsync";
-import httpStatus from "http-status-codes";
 import { DriverService } from "./driver.service";
 import { sendResponse } from "../../utils/sendResponse";
-import AppError from "../../errorHelpers/AppError";
-import { UserServices } from "../user/user.service";
-import { Role } from "../user/user.interface";
+import httpStatus from "http-status-codes";
+import { JwtPayload } from "jsonwebtoken";
 
+const applyToBeDriver = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const user = req.user;
 
-const updateAvailability = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const driverId = req.params.id;
-  const payload = req.body;
-  const decodedToken = req.user;
+  const {userId} = user as JwtPayload;
 
-  if (!decodedToken) throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized");
-
-  const updatedDriver = await DriverService.setAvailability(driverId, payload, decodedToken);
+  const driver = await DriverService.applyToBeDriver(userId, req.body);
 
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.OK,
-    message: "Driver availability updated successfully",
-    data: updatedDriver,
-  });
-});
-
-
-const getDriverProfile = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const driverId = req.params.id;
-
-  const driver = await DriverService.getDriverById(driverId);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Driver profile retrieved successfully",
+    statusCode: httpStatus.CREATED,
+    message: "Driver application submitted successfully.",
     data: driver,
   });
 });
 
-//update status
-const updateRideStatus = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const driverId = req.params.id;
-  const payload = req.body;
-  const decodedToken = req.user;
-
-  if (!decodedToken) throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized");
-
-  if (!payload.rideId || !payload.status) {
-    throw new AppError(httpStatus.BAD_REQUEST, "rideId and status are required");
-  }
-  const updatedRide = await DriverService.updateRideStatus(driverId, payload, decodedToken);
-
+const getAvailableRides = catchAsync(async (req: Request, res: Response) => {
+  const rides = await DriverService.getAvailableRides();
   sendResponse(res, {
-    success: true,
     statusCode: httpStatus.OK,
-    message: "Ride status updated successfully",
-    data: updatedRide,
-  });
-});
-
-
-const getRideHistory = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const driverId = req.params.id;
-
-  const rides = await DriverService.getDriverRideHistory(driverId);
-
-  sendResponse(res, {
     success: true,
-    statusCode: httpStatus.OK,
-    message: "Driver ride history retrieved successfully",
+    message: "Available ride requests retrieved successfully",
     data: rides,
   });
 });
 
 
-// block driver
-const blockDriverController  = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.params.id;
-  const verifiedToken = req.user;
-  if (!verifiedToken) {
-    throw new AppError(httpStatus.UNAUTHORIZED, 'Unauthorized');
-  }
+const acceptRide = catchAsync(async (req: Request, res: Response) => {
+  const rideId = req.params.id;
+  const user = req.user;
 
-  const { isBlock } = req.body;
-  const user = await UserServices.blockUser(userId, isBlock, verifiedToken);
+  const {userId} = user as JwtPayload;
+
+  const result = await DriverService.acceptRide(rideId, userId);
+
   sendResponse(res, {
-    success: true,
     statusCode: httpStatus.OK,
-    message: `User ${isBlock === 'BLOCK' ? 'blocked' : 'unblocked'} successfully`,
-    data: user,
+    success: true,
+    message: "Ride accepted successfully",
+    data: result,
   });
 });
 
+
+export const rejectRide = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user;
+
+  const {userId} = user as JwtPayload;
+
+  const result = await DriverService.rejectRide(id, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Ride request rejected successfully",
+    data: result,
+  });
+});
+
+
+export const updateRideStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user;
+
+  const {userId} = user as JwtPayload;
+
+  const result = await DriverService.updateRideStatus(id, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Ride status updated successfully",
+    data: result,
+  });
+});
+
+
+const getRideHistory = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+
+  const {userId} = user as JwtPayload;
+
+  const result = await DriverService.getRideHistory(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Ride history retrieved successfully",
+    data: result,
+  });
+});
+
+
+
 export const DriverController = {
-  updateAvailability,
-  getDriverProfile,
-  getRideHistory,
+  applyToBeDriver,
+  getAvailableRides,
+  acceptRide,
+  rejectRide,
   updateRideStatus,
-  blockDriverController
+  getRideHistory,
 };
