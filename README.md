@@ -2,6 +2,10 @@
 
 A secure and scalable **RESTful API** built using **Node.js**, **Express.js**, **TypeScript**, and **MongoDB**. This backend system powers a complete **Ride Booking platform** supporting riders, drivers, and admins through role-based access, robust ride lifecycle management, and driver onboarding workflows.
 
+
+ Live Link : https://a-5-gamma.vercel.app
+
+
 ---
 
 ## Features
@@ -45,7 +49,7 @@ npm install
 ### 3 Create .env File
 ```
 PORT=5000
-DB_URL=mongodb://localhost:27017/rideBooking
+DB_URL=mongodb://localhost:27000/rideBooking
 NODE_ENV=development
 JWT_ACCESS_SECRET=your_jwt_secret
 JWT_ACCESS_EXPIRES=1d
@@ -69,9 +73,9 @@ npm run dev
 
 | Method | Endpoint              | Description                     |
 |--------|-----------------------|---------------------------------|
-| POST   | `/auth/login`         | Login and receive JWT           |
-| POST   | `/auth/logout`        | Logout and remove JWT           |
-| POST   | `/auth/set-password`  | Set Password for Google Auth User |
+| POST   | `api/auth/login`         | Login and receive JWT           |
+| POST   | `api/auth/logout`        | Logout and remove JWT           |
+| POST   | `api/auth/set-password`  | Set Password for Google Auth User |
 
 ---
 
@@ -79,8 +83,8 @@ npm run dev
 
 | Method | Endpoint       | Description                            |
 |--------|----------------|----------------------------------------|
-| POST   | `/user/register` | Register new user (default: rider)     |
-| PATCH  | `/user/:id`      | Update user profile                    |
+| POST   | `api/user/register` | Register new user (default: rider)     |
+| PATCH  | `api/user/:id`      | Update user profile                    |
 
 ---
 
@@ -88,14 +92,14 @@ npm run dev
 
 | Method | Endpoint                         | Description                    |
 |--------|----------------------------------|--------------------------------|
-| GET    | `/admin/users`                   | View all users                 |
-| GET    | `/admin/rides`                   | View all rides                 |
-| GET    | `/admin/drivers`                 | View all drivers               |
-| PATCH  | `/admin/driver/approve/:id`      | Approve driver application     |
-| PATCH  | `/admin/driver/suspend/:id`      | Suspend driver application     |
-| PATCH  | `/admin/user/block/:id`          | Block user                     |
-| PATCH  | `/admin/user/unblock/:id`        | Unblock user                   |
-| GET    | `/admin/report`                  | Generate Report                |
+| GET    | `api/admin/users`                   | View all users                 |
+| GET    | `api/admin/rides`                   | View all rides                 |
+| GET    | `api/admin/drivers`                 | View all drivers               |
+| PATCH  | `api/admin/driver/approve/:id`      | Approve driver application     |
+| PATCH  | `api/admin/driver/suspend/:id`      | Suspend driver application     |
+| PATCH  | `api/admin/user/block/:id`          | Block user                     |
+| PATCH  | `api/admin/user/unblock/:id`        | Unblock user                   |
+| GET    | `api/admin/report`                  | Generate Report                |
 
 ---
 
@@ -103,12 +107,12 @@ npm run dev
 
 | Method | Endpoint                          | Description                                        |
 |--------|-----------------------------------|----------------------------------------------------|
-| POST   | `/driver/apply-driver`            | Apply as driver                                   |
-| GET    | `/driver/rides-available`         | View unassigned ride requests                     |
-| GET    | `/driver/earning-history`         | View own ride/earning history                     |
-| PATCH  | `/driver/rides/:id/accept`        | Accept a ride                                     |
-| PATCH  | `/driver/rides/:id/reject`        | Reject a ride                                     |
-| PATCH  | `/driver/rides/:id/status`        | Progress ride: `picked_up → in_transit → completed` |
+| POST   | `api/driver/apply-driver`            | Apply as driver                                   |
+| GET    | `api/driver/rides-available`         | View unassigned ride requests                     |
+| GET    | `api/driver/earning-history`         | View own ride/earning history                     |
+| PATCH  | `api/driver/rides/:id/accept`        | Accept a ride                                     |
+| PATCH  | `api/driver/rides/:id/reject`        | Reject a ride                                     |
+| PATCH  | `api/driver/rides/:id/status`        | Progress ride: picked_up → in_transit → completed |
 
 ---
 
@@ -116,13 +120,13 @@ npm run dev
 
 | Method | Endpoint             | Description                  |
 |--------|----------------------|------------------------------|
-| POST   | `/rides/request`     | (Rider) Request a ride       |
-| PATCH  | `/rides/:id/cancel`  | (Rider) Cancel a ride        |
-| GET    | `/rides/me`          | (Rider) View all ride history |
-| GET    | `/rides/:id`         | (Rider) View single ride history |
+| POST   | `api/rides/request`     | (Rider) Request a ride       |
+| PATCH  | `api/rides/:id/cancel`  | (Rider) Cancel a ride        |
+| GET    | `api/rides/me`          | (Rider) View all ride history |
+| GET    | `api/rides/:id`         | (Rider) View single ride history |
 
 
- Folder Structure
+ ### Folder Structure
 ```
 src/
 ├── app/
@@ -141,7 +145,7 @@ src/
 ```
 
 
- Live Link : 
+ Live Link : https://a-5-gamma.vercel.app
 
 
 
