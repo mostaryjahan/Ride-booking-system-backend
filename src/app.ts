@@ -11,9 +11,17 @@ import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 import passport from "passport";
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+
 app.use(cookieParser())
+app.use(express.json());
+
+app.use(
+  cors({
+    origin: envVars.FRONTEND_URL,
+    credentials: true,
+  })
+);
+
 
 app.use(expressSession({
   secret: envVars.EXPRESS_SESSION_SECRET,
